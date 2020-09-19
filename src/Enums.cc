@@ -30,7 +30,7 @@ render_format_t RenderFormatFromString(const char* formatString) {
 	}
 }
 
-Handle<Value> RenderFormatToString(render_format_t format) {
+Local<Value> RenderFormatToString(render_format_t format) {
 	const char* formatString =
 		format == RENDER_FORMAT_RAW ? "raw" :
 		format == RENDER_FORMAT_PNG ? "png" :
@@ -68,7 +68,7 @@ cairo_format_t CairoFormatFromString(const char* formatString) {
 	}
 }
 
-Handle<Value> CairoFormatToString(cairo_format_t format) {
+Local<Value> CairoFormatToString(cairo_format_t format) {
 	const char* formatString =
 		format == CAIRO_FORMAT_ARGB32 ? "argb32" :
 		format == CAIRO_FORMAT_RGB24 ? "rgb24" :

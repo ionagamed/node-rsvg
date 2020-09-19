@@ -18,6 +18,10 @@ If you have any issues, you can try [prebuilt node-rsvg](https://github.com/f3la
 This repository is fork of https://github.com/walling/node-rsvg and has windows support and don't need to export some variables for successfully building on OSX.
 Also this fork fixes problem with zero-sized buffer rendered in some real rare cases.
 
+## Node 10+ support
+
+This is a fork of https://github.com/2gis/node-rsvg, modified to support both new version of node (APIs changed when migrating from node 10 to node 14), and new versions of librsvg (it stopped supporting in-place parsing without first stopping the input stream).
+
 ## Basic Usage
 
 Here is a simple example. Look in `index.js` for more documentation.
@@ -27,21 +31,14 @@ var Rsvg = require('librsvg').Rsvg;
 var fs = require('fs');
 
 // Create SVG render instance.
-var svg = new Rsvg();
+var svg = new Rsvg(fs.readFileSync('tiger.svg'));
 
-// When finishing reading SVG, render and save as PNG image.
-svg.on('finish', function() {
-  console.log('SVG width: ' + svg.width);
-  console.log('SVG height: ' + svg.height);
-  fs.writeFile('tiger.png', svg.render({
-    format: 'png',
-    width: 600,
-    height: 400
-  }).data);
-});
-
-// Stream SVG file into render instance.
-fs.createReadStream('tiger.svg').pipe(svg);
+// Render and save as PNG image
+fs.writeFile('tiger.png', svg.render({
+  format: 'png',
+  width: 600,
+  height: 400
+}))
 ```
 
 ## Possible breaking changes

@@ -17,8 +17,8 @@ typedef enum {
 } render_format_t;
 
 render_format_t RenderFormatFromString(const char* formatString);
-v8::Handle<v8::Value> RenderFormatToString(render_format_t format);
+v8::Local<v8::Value> RenderFormatToString(render_format_t format);
 cairo_format_t CairoFormatFromString(const char* formatString);
-v8::Handle<v8::Value> CairoFormatToString(cairo_format_t format);
+v8::Local<v8::Value> CairoFormatToString(cairo_format_t format);
 
 #endif /*__ENUMS_H__*/

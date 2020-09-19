@@ -132,25 +132,40 @@ NAN_METHOD(Rsvg::GetDPI) {
             NULL
             );
 
-    Handle<ObjectTemplate> dpi = Nan::New<ObjectTemplate>();
+    Local<ObjectTemplate> dpi = Nan::New<ObjectTemplate>();
     dpi->Set(Nan::New("x").ToLocalChecked(), Nan::New<Number>(dpiX));
     dpi->Set(Nan::New("y").ToLocalChecked(), Nan::New<Number>(dpiY));
 
-    ARGVAR.GetReturnValue().Set(dpi->NewInstance());
+    MaybeLocal<Object> maybeDpiInstance = dpi->NewInstance(Nan::GetCurrentContext());
+
+    if (!maybeDpiInstance.IsEmpty()) {
+        ARGVAR.GetReturnValue().Set(maybeDpiInstance.ToLocalChecked());
+    } else {
+        ARGVAR.GetReturnValue().Set(Nan::Undefined());
+    }
 }
 
 NAN_METHOD(Rsvg::SetDPI) {
     Nan::HandleScope scope;
     Rsvg* obj = ObjectWrap::Unwrap<Rsvg>(ARGVAR.This());
 
-    gdouble x = ARGVAR[0]->NumberValue();
+    Maybe<gdouble> maybeX = ARGVAR[0]->NumberValue(Nan::GetCurrentContext());
+
+    gdouble x = 0;
+
+    if (maybeX.IsJust()) {
+        x = maybeX.FromJust();
+    }
     if (std::isnan(x)) {
         x = 0;
     }
 
     gdouble y = x;
     if (ARGVAR[1]->IsNumber()) {
-        y = ARGVAR[1]->NumberValue();
+        Maybe<gdouble> maybeY = ARGVAR[1]->NumberValue(Nan::GetCurrentContext());
+        if (maybeY.IsJust()) {
+            y = maybeY.FromJust();
+        }
         if (std::isnan(y)) {
             y = 0;
         }
@@ -236,7 +251,7 @@ NAN_METHOD(Rsvg::Dimensions) {
     Rsvg* obj = ObjectWrap::Unwrap<Rsvg>(ARGVAR.This());
 
     const char* id = NULL;
-    String::Utf8Value idArg(ARGVAR[0]);
+    String::Utf8Value idArg(info.GetIsolate(), ARGVAR[0]);
     if (!(ARGVAR[0]->IsUndefined() || ARGVAR[0]->IsNull())) {
         id = *idArg;
         if (!id) {
@@ -252,7 +267,7 @@ NAN_METHOD(Rsvg::Dimensions) {
     gboolean hasDimensions = rsvg_handle_get_dimensions_sub(obj->_handle, &_dimensions, id);
 
     if (hasPosition || hasDimensions) {
-        Handle<ObjectTemplate> dimensions = Nan::New<ObjectTemplate>();
+        Local<ObjectTemplate> dimensions = Nan::New<ObjectTemplate>();
         if (hasPosition) {
             dimensions->Set(Nan::New("x").ToLocalChecked(), Nan::New<Integer>(_position.x));
             dimensions->Set(Nan::New("y").ToLocalChecked(), Nan::New<Integer>(_position.y));
@@ -261,7 +276,12 @@ NAN_METHOD(Rsvg::Dimensions) {
             dimensions->Set(Nan::New("width").ToLocalChecked(), Nan::New<Integer>(_dimensions.width));
             dimensions->Set(Nan::New("height").ToLocalChecked(), Nan::New<Integer>(_dimensions.height));
         }
-        ARGVAR.GetReturnValue().Set(dimensions->NewInstance());
+        MaybeLocal<Object> maybeDimensionsInstance = dimensions->NewInstance(Nan::GetCurrentContext());
+        if (!maybeDimensionsInstance.IsEmpty()) {
+            ARGVAR.GetReturnValue().Set(maybeDimensionsInstance.ToLocalChecked());
+        } else {
+            ARGVAR.GetReturnValue().Set(Nan::Null());
+        }
     } else {
         ARGVAR.GetReturnValue().Set(Nan::Null());
     }
@@ -272,7 +292,7 @@ NAN_METHOD(Rsvg::HasElement) {
     Rsvg* obj = ObjectWrap::Unwrap<Rsvg>(ARGVAR.This());
 
     const char* id = NULL;
-    String::Utf8Value idArg(ARGVAR[0]);
+    String::Utf8Value idArg(info.GetIsolate(), ARGVAR[0]);
     if (!(ARGVAR[0]->IsUndefined() || ARGVAR[0]->IsNull())) {
         id = *idArg;
         if (!id) {
@@ -289,8 +309,17 @@ NAN_METHOD(Rsvg::Render) {
     Nan::HandleScope scope;
     Rsvg* obj = ObjectWrap::Unwrap<Rsvg>(ARGVAR.This());
 
-    int width = ARGVAR[0]->Int32Value();
-    int height = ARGVAR[1]->Int32Value();
+    int width = -1;
+    Maybe<int> maybeWidth = ARGVAR[0]->Int32Value(Nan::GetCurrentContext());
+    if (maybeWidth.IsJust()) {
+        width = maybeWidth.FromJust();
+    }
+
+    int height = -1;
+    Maybe<int> maybeHeight = ARGVAR[1]->Int32Value(Nan::GetCurrentContext());
+    if (maybeHeight.IsJust()) {
+        height = maybeHeight.FromJust();
+    }
 
     if (width <= 0) {
         Nan::ThrowError("Expected width > 0.");
@@ -301,7 +330,7 @@ NAN_METHOD(Rsvg::Render) {
         return ARGVAR.GetReturnValue().Set(Nan::Undefined());
     }
 
-    String::Utf8Value formatArg(ARGVAR[2]);
+    String::Utf8Value formatArg(info.GetIsolate(), ARGVAR[2]);
     const char* formatString = *formatArg;
     render_format_t renderFormat = RenderFormatFromString(formatString);
     cairo_format_t pixelFormat = CAIRO_FORMAT_INVALID;
@@ -328,7 +357,7 @@ NAN_METHOD(Rsvg::Render) {
     }
 
     const char* id = NULL;
-    String::Utf8Value idArg(ARGVAR[3]);
+    String::Utf8Value idArg(info.GetIsolate(), ARGVAR[3]);
     if (!(ARGVAR[3]->IsUndefined() || ARGVAR[3]->IsNull())) {
         id = *idArg;
         if (!id) {
@@ -439,7 +468,7 @@ NAN_METHOD(Rsvg::Render) {
         return ARGVAR.GetReturnValue().Set(Nan::Undefined());
     }
 
-    Handle<ObjectTemplate> image = CREATE_OBJ();
+    Local<ObjectTemplate> image = CREATE_OBJ();
     if (renderFormat == RENDER_FORMAT_SVG) {
         PROP_SET(image, "data", Nan::New<String>(data.c_str()).ToLocalChecked());
     } else {
@@ -461,7 +490,12 @@ NAN_METHOD(Rsvg::Render) {
         PROP_SET(image, "stride", Nan::New<Integer>(stride));
     }
 
-    ARGVAR.GetReturnValue().Set(image->NewInstance());
+    MaybeLocal<Object> maybeImageInstance = image->NewInstance(Nan::GetCurrentContext());
+    if (!maybeImageInstance.IsEmpty()) {
+        ARGVAR.GetReturnValue().Set(maybeImageInstance.ToLocalChecked());
+    } else {
+        ARGVAR.GetReturnValue().Set(Nan::Null());
+    }
 }
 
 v8::Local<v8::String> Rsvg::GetStringProperty (const char* property, const ARGTYPE& ARGVAR) {
@@ -482,7 +516,7 @@ void Rsvg::SetStringProperty (const char* property, const ARGTYPE& ARGVAR) {
     Nan::HandleScope scope;
     Rsvg* obj = ObjectWrap::Unwrap<Rsvg>(ARGVAR.This());
     gchar* value = NULL;
-    String::Utf8Value arg0(ARGVAR[0]);
+    String::Utf8Value arg0(info.GetIsolate(), ARGVAR[0]);
     if (!(ARGVAR[0]->IsNull() || ARGVAR[0]->IsUndefined())) {
         value = *arg0;
     }
@@ -500,7 +534,11 @@ v8::Local<v8::Number> Rsvg::GetNumberProperty (const char* property, const ARGTY
 void Rsvg::SetNumberProperty (const char* property, const ARGTYPE& ARGVAR) {
     Nan::HandleScope scope;
     Rsvg* obj = ObjectWrap::Unwrap<Rsvg>(ARGVAR.This());
-    gdouble value = ARGVAR[0]->NumberValue();
+    gdouble value = 0;
+    Maybe<gdouble> maybeValue = ARGVAR[0]->NumberValue(Nan::GetCurrentContext());
+    if (maybeValue.IsJust()) {
+        value = maybeValue.FromJust();
+    }
     if (std::isnan(value)) {
         value = 0;
     }
@@ -518,7 +556,11 @@ v8::Local<v8::Integer> Rsvg::GetIntegerProperty (const char* property, const ARG
 void Rsvg::SetIntegerProperty (const char* property, const ARGTYPE& ARGVAR) {
     Nan::HandleScope scope;
     Rsvg* obj = ObjectWrap::Unwrap<Rsvg>(ARGVAR.This());
-    gint value = ARGVAR[0]->Int32Value();
+    gint value = 0;
+    Maybe<gint> maybeValue = ARGVAR[0]->Int32Value(Nan::GetCurrentContext());
+    if (maybeValue.IsJust()) {
+        value = maybeValue.FromJust();
+    }
     g_object_set(G_OBJECT(obj->_handle), property, value, NULL);
 }
 

@@ -179,12 +179,18 @@ NAN_METHOD(Rsvg::Autocrop) {
             AutocropRecursive(obj->_handle, &area, 2) &&
             AutocropRecursive(obj->_handle, &area, 3) &&
             AutocropRecursive(obj->_handle, &area, 4)) {
-        Handle<ObjectTemplate> dimensions = Nan::New<ObjectTemplate>();
+        Local<ObjectTemplate> dimensions = Nan::New<ObjectTemplate>();
         dimensions->Set(Nan::New("x").ToLocalChecked(), Nan::New<Number>(area.left));
         dimensions->Set(Nan::New("y").ToLocalChecked(), Nan::New<Number>(area.top));
         dimensions->Set(Nan::New("width").ToLocalChecked(), Nan::New<Number>(area.right - area.left));
         dimensions->Set(Nan::New("height").ToLocalChecked(), Nan::New<Number>(area.bottom - area.top));
-        ARGVAR.GetReturnValue().Set(dimensions->NewInstance());
+
+        MaybeLocal<Object> maybeDimensionsInstance = dimensions->NewInstance(Nan::GetCurrentContext());
+        if (!maybeDimensionsInstance.IsEmpty()) {
+            ARGVAR.GetReturnValue().Set(maybeDimensionsInstance.ToLocalChecked());
+        } else {
+            ARGVAR.GetReturnValue().Set(Nan::Undefined());
+        }
     } else {
         ARGVAR.GetReturnValue().Set(Nan::Undefined());
     }
